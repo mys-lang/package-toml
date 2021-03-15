@@ -1,0 +1,47 @@
+from string import StringReader
+
+class JsonError(Error):
+    message: string
+
+@trait
+class Value:
+    """A value in a TOML document.
+
+    """
+
+    def get(self, name: string) -> Value:
+        pass
+
+    def get_string(self) -> string:
+        pass
+
+def decode(data: string) -> Value:
+    """Decode given TOML document string.
+
+    """
+
+    reader = StringReader(data)
+    root: Value = None
+
+    while True:
+        ch = reader.get()
+
+        if ch == '':
+            break
+        else:
+            print(ch)
+
+    return root
+
+@test
+def test_empty_document():
+    assert decode("") is not None
+
+@test
+def test_comment():
+    encoded = ("# This is a full-line comment\n"
+               "key = \"value\"  # This is a comment at the end of a line\n"
+               "another = \"# This is not a comment\"\n")
+    decoded = decode(encoded)
+    assert decoded.get("key").get_string() == "value"
+    assert decoded.get("another").get_string() == "# This is not a comment"
