@@ -163,6 +163,42 @@ def _decode_table(root: Table, reader: StringReader) -> Table:
 
     return table
 
+def _decode_inline_table(reader: StringReader) -> Table:
+    table = Table()
+
+    while True:
+        ch = reader.get()
+
+        if ch == '':
+            raise TomlError(f"No value found before end of input.")
+        elif ch in " \t,":
+            pass
+        elif ch == '}':
+            break
+        else:
+            reader.unget()
+            _decode_key_value(table, reader)
+
+    return table
+
+def _decode_value(reader: StringReader) -> Value:
+    while True:
+        ch = reader.get()
+
+        if ch == '':
+            raise TomlError(f"No value found before end of input.")
+        elif ch in " \t":
+            pass
+        else:
+            if ch == '"':
+                return _decode_string(reader)
+            elif ch in "0123456789":
+                return _decode_integer(reader, ch)
+            elif ch == '{':
+                return _decode_inline_table(reader)
+            else:
+                raise TomlError(f"Bad value start '{ch}'.")
+
 def _decode_key_value(table: Table, reader: StringReader):
     key = ""
     value: Value = None
@@ -179,24 +215,7 @@ def _decode_key_value(table: Table, reader: StringReader):
         else:
             key += ch
 
-    while True:
-        ch = reader.get()
-
-        if ch == '':
-            raise TomlError(f"Missing value for key '{key}'.")
-        elif ch in " \t":
-            pass
-        else:
-            if ch == '"':
-                value = _decode_string(reader)
-            elif ch in "0123456789":
-                value = _decode_integer(reader, ch)
-            else:
-                raise TomlError(f"Bad value for key '{key}'.")
-
-            break
-
-    table.items[key] = value
+    table.items[key] = _decode_value(reader)
 
 def _decode_comment(reader: StringReader):
     while True:
@@ -328,14 +347,14 @@ def test_root_table():
     owner = decoded.get("owner")
     assert owner.get("name").get_string() == "Regina Dogman"
 
-# @test
-# def test_inline_table():
-#     encoded = ("name = { first = \"Tom\", last = \"Preston-Werner\" }\n"
-#                "point = { x = 1, y = 2 }\n"
-#                "animal = { type.name = \"pug\" }\n")
-#     decoded = decode(encoded)
-#     assert decoded.get("name").get("first").get_string() == "Tom"
-#     assert decoded.get("name").get("last").get_string() == "Preston-Werner"
-#     assert decoded.get("point").get("x").get_integer() == 1
-#     assert decoded.get("point").get("y").get_integer() == 2
-#     assert decoded.get("animal").get("type").get("name").get_string() == "pug"
+@test
+def test_inline_table():
+    encoded = ("name = { first = \"Tom\", last = \"Preston-Werner\" }\n"
+               "point = { x = 1, y = 2 }\n")
+    # "animal = { type.name = \"pug\" }\n")
+    decoded = decode(encoded)
+    assert decoded.get("name").get("first").get_string() == "Tom"
+    assert decoded.get("name").get("last").get_string() == "Preston-Werner"
+    assert decoded.get("point").get("x").get_integer() == 1
+    assert decoded.get("point").get("y").get_integer() == 2
+    # assert decoded.get("animal").get("type").get("name").get_string() == "pug"
