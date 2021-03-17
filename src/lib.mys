@@ -181,6 +181,26 @@ def _decode_inline_table(reader: StringReader) -> Table:
 
     return table
 
+def _decode_array(reader: StringReader) -> Array:
+    array = Array()
+
+    while True:
+        ch = reader.get()
+
+        if ch == '':
+            raise TomlError(f"No value found before end of input.")
+        elif ch in " \t\n,":
+            pass
+        elif ch == '#':
+            _decode_comment(reader)
+        elif ch == ']':
+            break
+        else:
+            reader.unget()
+            array.items += _decode_value(reader)
+
+    return array
+
 def _decode_value(reader: StringReader) -> Value:
     while True:
         ch = reader.get()
@@ -196,6 +216,8 @@ def _decode_value(reader: StringReader) -> Value:
                 return _decode_integer(reader, ch)
             elif ch == '{':
                 return _decode_inline_table(reader)
+            elif ch == '[':
+                return _decode_array(reader)
             else:
                 raise TomlError(f"Bad value start '{ch}'.")
 
@@ -278,30 +300,46 @@ def test_comment():
 #     assert physical.get("shape").get_string() == "round"
 #     assert decoded.get("site").get("google.com").get_bool()
 
-# @test
-# def test_array():
-#     encoded = (
-#         "integers = [ 1, 2, 3 ]\n"
-#         "colors = [ \"red\", \"yellow\", \"green\" ]\n"
-#         "nested_arrays_of_ints = [ [ 1, 2 ], [3, 4, 5] ]\n"
-#         "nested_mixed_array = [ [ 1, 2 ], [\"a\", \"b\", \"c\"] ]\n")
-#     decoded = decode(encoded)
-#     assert decoded.get("integers").at(0).get_integer() == 1
-#     assert decoded.get("integers").at(1).get_integer() == 2
-#     assert decoded.get("integers").at(2).get_integer() == 3
-#     assert decoded.get("colors").at(0).get_string() == "red"
-#     assert decoded.get("colors").at(1).get_string() == "yellow"
-#     assert decoded.get("colors").at(2).get_string() == "green"
-#     assert decoded.get("nested_arrays_of_ints").at(0).at(0).get_integer() == 1
-#     assert decoded.get("nested_arrays_of_ints").at(0).at(1).get_integer() == 2
-#     assert decoded.get("nested_arrays_of_ints").at(1).at(0).get_integer() == 3
-#     assert decoded.get("nested_arrays_of_ints").at(1).at(1).get_integer() == 4
-#     assert decoded.get("nested_arrays_of_ints").at(1).at(2).get_integer() == 5
-#     assert decoded.get("nested_mixed_array").at(0).at(0).get_integer() == 1
-#     assert decoded.get("nested_mixed_array").at(0).at(1).get_integer() == 2
-#     assert decoded.get("nested_mixed_array").at(1).at(0).get_string() == "a"
-#     assert decoded.get("nested_mixed_array").at(1).at(1).get_string() == "b"
-#     assert decoded.get("nested_mixed_array").at(1).at(2).get_string() == "c"
+@test
+def test_array():
+    encoded = (
+        "integers = [ 1, 2, 3 ]\n"
+        "colors = [ \"red\", \"yellow\", \"green\" ]\n"
+        "nested_arrays_of_ints = [ [ 1, 2 ], [3, 4, 5] ]\n"
+        "nested_mixed_array = [ [ 1, 2 ], [\"a\", \"b\", \"c\"] ]\n")
+    decoded = decode(encoded)
+    assert decoded.get("integers").at(0).get_integer() == 1
+    assert decoded.get("integers").at(1).get_integer() == 2
+    assert decoded.get("integers").at(2).get_integer() == 3
+    assert decoded.get("colors").at(0).get_string() == "red"
+    assert decoded.get("colors").at(1).get_string() == "yellow"
+    assert decoded.get("colors").at(2).get_string() == "green"
+    assert decoded.get("nested_arrays_of_ints").at(0).at(0).get_integer() == 1
+    assert decoded.get("nested_arrays_of_ints").at(0).at(1).get_integer() == 2
+    assert decoded.get("nested_arrays_of_ints").at(1).at(0).get_integer() == 3
+    assert decoded.get("nested_arrays_of_ints").at(1).at(1).get_integer() == 4
+    assert decoded.get("nested_arrays_of_ints").at(1).at(2).get_integer() == 5
+    assert decoded.get("nested_mixed_array").at(0).at(0).get_integer() == 1
+    assert decoded.get("nested_mixed_array").at(0).at(1).get_integer() == 2
+    assert decoded.get("nested_mixed_array").at(1).at(0).get_string() == "a"
+    assert decoded.get("nested_mixed_array").at(1).at(1).get_string() == "b"
+    assert decoded.get("nested_mixed_array").at(1).at(2).get_string() == "c"
+
+@test
+def test_multi_line_array():
+    encoded = ("integers2 = [\n"
+               "  1, 2, 3\n"
+               "]\n"
+               "\n"
+               "integers3 = [\n"
+               "  1,\n"
+               "  2, # this is ok\n"
+               "]\n")
+    decoded = decode(encoded)
+    assert decoded.get("integers2").at(0).get_integer() == 1
+    assert decoded.get("integers2").at(1).get_integer() == 2
+    assert decoded.get("integers3").at(0).get_integer() == 1
+    assert decoded.get("integers3").at(1).get_integer() == 2
 
 @test
 def test_table():
