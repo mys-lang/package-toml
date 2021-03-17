@@ -1,6 +1,6 @@
 from string import StringReader
 
-class JsonError(Error):
+class TomlError(Error):
     message: string
 
 @trait
@@ -9,27 +9,227 @@ class Value:
 
     """
 
-    def get(self, name: string) -> Value:
-        pass
+    def get_table(self) -> {string: Value}:
+        raise NotImplementedError()
+
+    def get(self, key: string) -> Value:
+        raise NotImplementedError()
+
+    def get_array(self) -> [Value]:
+        raise NotImplementedError()
+
+    def at(self, index: i64) -> Value:
+        raise NotImplementedError()
 
     def get_string(self) -> string:
-        pass
+        raise NotImplementedError()
 
-def decode(data: string) -> Value:
-    """Decode given TOML document string.
+    def get_integer(self) -> i64:
+        raise NotImplementedError()
+
+    def get_float(self) -> f64:
+        raise NotImplementedError()
+
+    def get_bool(self) -> bool:
+        raise NotImplementedError()
+
+class Table(Value):
+    items: {string: Value}
+
+    def __init__(self):
+        self.items = {}
+
+    def get_table(self) -> {string: Value}:
+        return self.items
+
+    def get(self, key: string) -> Value:
+        return self.items[key]
+
+class Array(Value):
+    items: [Value]
+
+    def __init__(self):
+        self.items = []
+
+    def get_array(self) -> [Value]:
+        return self.items
+
+    def at(self, index: i64) -> Value:
+        return self.items[index]
+
+class String(Value):
+    value: string
+
+    def get_string(self) -> string:
+        return self.value
+
+class Integer(Value):
+    value: i64
+
+    def get_integer(self) -> i64:
+        return self.value
+
+# class Float(Value):
+#     value: f64
+#
+#     def get_float(self) -> f64:
+#         return self.value
+
+class Bool(Value):
+    value: bool
+
+    def get_bool(self) -> bool:
+        return self.value
+
+def _decode_string(reader: StringReader) -> String:
+    value = ""
+
+    while True:
+        ch = reader.get()
+
+        if ch == '\"':
+            break
+        elif ch == '\\':
+            ch = reader.get()
+
+            if ch in "\"/\\":
+                value += ch
+            elif ch == 'b':
+                value += '\b'
+            elif ch == 'f':
+                value += '\f'
+            elif ch == 'r':
+                value += '\r'
+            elif ch == 'n':
+                value += '\n'
+            elif ch == 't':
+                value += '\t'
+            elif ch == 'u':
+                value += char(i32(reader.get()) << 24
+                              | i32(reader.get()) << 16
+                              | i32(reader.get()) << 8
+                              | i32(reader.get()) << 0)
+            else:
+                raise TomlError(f"Unexpected character '{ch}'.")
+        elif ch == '':
+            raise TomlError("Out of data when parsing string.")
+        else:
+            value += ch
+
+    return String(value)
+
+def _decode_integer(reader: StringReader, ch: char) -> Value:
+    data = ""
+
+    while True:
+        data += ch
+        ch = reader.get()
+
+        if ch not in "0123456789":
+            if ch != '':
+                reader.unget()
+
+            break
+
+    return Integer(i64(data))
+
+def _decode_true(reader: StringReader) -> Bool:
+    if reader.read(3) != "rue":
+        raise TomlError("Corrupt true.")
+
+    return Bool(True)
+
+def _decode_false(reader: StringReader) -> Bool:
+    if reader.read(4) != "alse":
+        raise TomlError("Corrupt false.")
+
+    return Bool(False)
+
+def _decode_table(root: Table, reader: StringReader) -> Table:
+    name = ""
+    table = Table()
+
+    while True:
+        ch = reader.get()
+
+        if ch == '':
+            raise TomlError("Table name missing.")
+        elif ch == ']':
+            break
+        else:
+            name += ch
+
+    root.items[name] = table
+
+    return table
+
+def _decode_key_value(table: Table, reader: StringReader):
+    key = ""
+    value: Value = None
+
+    while True:
+        ch = reader.get()
+
+        if ch == '':
+            return
+        elif ch in " \t":
+            pass
+        elif ch == '=':
+            break
+        else:
+            key += ch
+
+    while True:
+        ch = reader.get()
+
+        if ch == '':
+            raise TomlError(f"Missing value for key '{key}'.")
+        elif ch in " \t":
+            pass
+        else:
+            if ch == '"':
+                value = _decode_string(reader)
+            elif ch in "0123456789":
+                value = _decode_integer(reader, ch)
+            else:
+                raise TomlError(f"Bad value for key '{key}'.")
+
+            break
+
+    table.items[key] = value
+
+def _decode_comment(reader: StringReader):
+    while True:
+        ch = reader.get()
+
+        if ch == '':
+            break
+        elif ch == '\n':
+            break
+
+def decode(data: string) -> Table:
+    """Decode given TOML string.
 
     """
 
     reader = StringReader(data)
-    root: Value = None
+    root = Table()
+    table = root
 
     while True:
         ch = reader.get()
 
         if ch == '':
             break
+        elif ch in " \t\n":
+            pass
+        elif ch == '#':
+            _decode_comment(reader)
+        elif ch == '[':
+            table = _decode_table(root, reader)
         else:
-            print(ch)
+            reader.unget()
+            _decode_key_value(table, reader)
 
     return root
 
@@ -45,3 +245,97 @@ def test_comment():
     decoded = decode(encoded)
     assert decoded.get("key").get_string() == "value"
     assert decoded.get("another").get_string() == "# This is not a comment"
+
+# @test
+# def test_dotted_keys():
+#     encoded = ("name = \"Orange\"\n"
+#                "physical.color = \"orange\"\n"
+#                "physical.shape = \"round\"\n"
+#                "site.\"google.com\" = true\n")
+#     decoded = decode(encoded)
+#     assert decoded.get("name").get_string() == "Orange"
+#     physical = decoded.get("physical")
+#     assert physical.get("color").get_string() == "orange"
+#     assert physical.get("shape").get_string() == "round"
+#     assert decoded.get("site").get("google.com").get_bool()
+
+# @test
+# def test_array():
+#     encoded = (
+#         "integers = [ 1, 2, 3 ]\n"
+#         "colors = [ \"red\", \"yellow\", \"green\" ]\n"
+#         "nested_arrays_of_ints = [ [ 1, 2 ], [3, 4, 5] ]\n"
+#         "nested_mixed_array = [ [ 1, 2 ], [\"a\", \"b\", \"c\"] ]\n")
+#     decoded = decode(encoded)
+#     assert decoded.get("integers").at(0).get_integer() == 1
+#     assert decoded.get("integers").at(1).get_integer() == 2
+#     assert decoded.get("integers").at(2).get_integer() == 3
+#     assert decoded.get("colors").at(0).get_string() == "red"
+#     assert decoded.get("colors").at(1).get_string() == "yellow"
+#     assert decoded.get("colors").at(2).get_string() == "green"
+#     assert decoded.get("nested_arrays_of_ints").at(0).at(0).get_integer() == 1
+#     assert decoded.get("nested_arrays_of_ints").at(0).at(1).get_integer() == 2
+#     assert decoded.get("nested_arrays_of_ints").at(1).at(0).get_integer() == 3
+#     assert decoded.get("nested_arrays_of_ints").at(1).at(1).get_integer() == 4
+#     assert decoded.get("nested_arrays_of_ints").at(1).at(2).get_integer() == 5
+#     assert decoded.get("nested_mixed_array").at(0).at(0).get_integer() == 1
+#     assert decoded.get("nested_mixed_array").at(0).at(1).get_integer() == 2
+#     assert decoded.get("nested_mixed_array").at(1).at(0).get_string() == "a"
+#     assert decoded.get("nested_mixed_array").at(1).at(1).get_string() == "b"
+#     assert decoded.get("nested_mixed_array").at(1).at(2).get_string() == "c"
+
+@test
+def test_table():
+    encoded = ("[table-1]\n"
+               "key1 = \"some string\"\n"
+               "key2 = 123\n"
+               "\n"
+               "[table-2]\n"
+               "key1 = \"another string\"\n"
+               "key2 = 456\n")
+    decoded = decode(encoded)
+    table_1 = decoded.get("table-1")
+    assert table_1.get("key1").get_string() == "some string"
+    assert table_1.get("key2").get_integer() == 123
+    table_2 = decoded.get("table-2")
+    assert table_2.get("key1").get_string() == "another string"
+    assert table_2.get("key2").get_integer() == 456
+
+# @test
+# def test_table_naming():
+#     encoded = ("[dog.\"tater.man\"]\n"
+#                "type.name = \"pug\"\n")
+#     decoded = decode(encoded)
+#     assert (decoded
+#             .get("dog")
+#             .get("tater.man")
+#             .get("type")
+#             .get("name")
+#             .get_string() == "pug")
+
+@test
+def test_root_table():
+    encoded = ("# Top-level table begins.\n"
+               "name = \"Fido\"\n"
+               "breed = \"pug\"\n"
+               "\n"
+               "# Top-level table ends.\n"
+               "[owner]\n"
+               "name = \"Regina Dogman\"\n")
+    decoded = decode(encoded)
+    assert decoded.get("name").get_string() == "Fido"
+    assert decoded.get("breed").get_string() == "pug"
+    owner = decoded.get("owner")
+    assert owner.get("name").get_string() == "Regina Dogman"
+
+# @test
+# def test_inline_table():
+#     encoded = ("name = { first = \"Tom\", last = \"Preston-Werner\" }\n"
+#                "point = { x = 1, y = 2 }\n"
+#                "animal = { type.name = \"pug\" }\n")
+#     decoded = decode(encoded)
+#     assert decoded.get("name").get("first").get_string() == "Tom"
+#     assert decoded.get("name").get("last").get_string() == "Preston-Werner"
+#     assert decoded.get("point").get("x").get_integer() == 1
+#     assert decoded.get("point").get("y").get_integer() == 2
+#     assert decoded.get("animal").get("type").get("name").get_string() == "pug"
