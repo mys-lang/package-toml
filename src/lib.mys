@@ -197,7 +197,7 @@ def _decode_array(reader: StringReader) -> Array:
             break
         else:
             reader.unget()
-            array.items += _decode_value(reader)
+            array.items.append(_decode_value(reader))
 
     return array
 
