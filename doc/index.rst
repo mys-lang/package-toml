@@ -7,8 +7,8 @@ The TOML package in the `Mys programming language`_.
 
 Project: https://github.com/mys-lang/package-toml
 
-Functions and types
-===================
+API
+===
 
 .. mysfile:: src/lib.mys
 
