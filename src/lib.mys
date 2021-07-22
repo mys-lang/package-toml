@@ -10,30 +10,67 @@ class Value:
     """
 
     def get_table(self) -> {string: Value}:
+        """Get a table. Raises an error for non-table values.
+
+        """
+
         raise NotImplementedError()
 
     def get(self, key: string) -> Value:
+        """Get an item from a table. Raises an error for non-table values and
+        if the key is missing.
+
+        """
+
         raise NotImplementedError()
 
     def get_array(self) -> [Value]:
+        """Get an array. Raises an error for non-array values.
+
+        """
+
         raise NotImplementedError()
 
     def at(self, index: i64) -> Value:
+        """Get an item in an array. Raises an error for non-array values.
+
+        """
+
         raise NotImplementedError()
 
     def get_string(self) -> string:
+        """Get a string. Raises an error for non-string values.
+
+        """
+
         raise NotImplementedError()
 
     def get_integer(self) -> i64:
+        """Get an integer. Raises an error for non-integer values.
+
+        """
+
         raise NotImplementedError()
 
     def get_float(self) -> f64:
+        """Get a float. Raises an error for non-float values.
+
+        """
+
         raise NotImplementedError()
 
     def get_bool(self) -> bool:
+        """Get a boolean. Raises an error for non-bool values.
+
+        """
+
         raise NotImplementedError()
 
 class Table(Value):
+    """A table.
+
+    """
+
     items: {string: Value}
 
     def __init__(self):
@@ -46,6 +83,10 @@ class Table(Value):
         return self.items[key]
 
 class Array(Value):
+    """An array.
+
+    """
+
     items: [Value]
 
     def __init__(self):
@@ -58,12 +99,20 @@ class Array(Value):
         return self.items[index]
 
 class String(Value):
+    """A string.
+
+    """
+
     value: string
 
     def get_string(self) -> string:
         return self.value
 
 class Integer(Value):
+    """An integer.
+
+    """
+
     value: i64
 
     def get_integer(self) -> i64:
@@ -76,6 +125,10 @@ class Integer(Value):
 #         return self.value
 
 class Bool(Value):
+    """A boolean.
+
+    """
+
     value: bool
 
     def get_bool(self) -> bool:
