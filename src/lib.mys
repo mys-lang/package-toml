@@ -9,14 +9,14 @@ class Value:
 
     """
 
-    def get_table(self) -> {string: Value}:
+    func get_table(self) -> {string: Value}:
         """Get a table. Raises an error for non-table values.
 
         """
 
         raise NotImplementedError()
 
-    def get(self, key: string) -> Value:
+    func get(self, key: string) -> Value:
         """Get an item from a table. Raises an error for non-table values and
         if the key is missing.
 
@@ -24,42 +24,42 @@ class Value:
 
         raise NotImplementedError()
 
-    def get_array(self) -> [Value]:
+    func get_array(self) -> [Value]:
         """Get an array. Raises an error for non-array values.
 
         """
 
         raise NotImplementedError()
 
-    def at(self, index: i64) -> Value:
+    func at(self, index: i64) -> Value:
         """Get an item in an array. Raises an error for non-array values.
 
         """
 
         raise NotImplementedError()
 
-    def get_string(self) -> string:
+    func get_string(self) -> string:
         """Get a string. Raises an error for non-string values.
 
         """
 
         raise NotImplementedError()
 
-    def get_integer(self) -> i64:
+    func get_integer(self) -> i64:
         """Get an integer. Raises an error for non-integer values.
 
         """
 
         raise NotImplementedError()
 
-    def get_float(self) -> f64:
+    func get_float(self) -> f64:
         """Get a float. Raises an error for non-float values.
 
         """
 
         raise NotImplementedError()
 
-    def get_bool(self) -> bool:
+    func get_bool(self) -> bool:
         """Get a boolean. Raises an error for non-bool values.
 
         """
@@ -73,13 +73,13 @@ class Table(Value):
 
     items: {string: Value}
 
-    def __init__(self):
+    func __init__(self):
         self.items = {}
 
-    def get_table(self) -> {string: Value}:
+    func get_table(self) -> {string: Value}:
         return self.items
 
-    def get(self, key: string) -> Value:
+    func get(self, key: string) -> Value:
         return self.items[key]
 
 class Array(Value):
@@ -89,13 +89,13 @@ class Array(Value):
 
     items: [Value]
 
-    def __init__(self):
+    func __init__(self):
         self.items = []
 
-    def get_array(self) -> [Value]:
+    func get_array(self) -> [Value]:
         return self.items
 
-    def at(self, index: i64) -> Value:
+    func at(self, index: i64) -> Value:
         return self.items[index]
 
 class String(Value):
@@ -105,7 +105,7 @@ class String(Value):
 
     value: string
 
-    def get_string(self) -> string:
+    func get_string(self) -> string:
         return self.value
 
 class Integer(Value):
@@ -115,13 +115,13 @@ class Integer(Value):
 
     value: i64
 
-    def get_integer(self) -> i64:
+    func get_integer(self) -> i64:
         return self.value
 
 # class Float(Value):
 #     value: f64
 #
-#     def get_float(self) -> f64:
+#     func get_float(self) -> f64:
 #         return self.value
 
 class Bool(Value):
@@ -131,10 +131,10 @@ class Bool(Value):
 
     value: bool
 
-    def get_bool(self) -> bool:
+    func get_bool(self) -> bool:
         return self.value
 
-def _decode_string(reader: StringReader) -> String:
+func _decode_string(reader: StringReader) -> String:
     value = ""
 
     while True:
@@ -171,7 +171,7 @@ def _decode_string(reader: StringReader) -> String:
 
     return String(value)
 
-def _decode_integer(reader: StringReader, ch: char) -> Value:
+func _decode_integer(reader: StringReader, ch: char) -> Value:
     data = ""
 
     while True:
@@ -186,19 +186,19 @@ def _decode_integer(reader: StringReader, ch: char) -> Value:
 
     return Integer(i64(data))
 
-def _decode_true(reader: StringReader) -> Bool:
+func _decode_true(reader: StringReader) -> Bool:
     if reader.read(3) != "rue":
         raise TomlError("Corrupt true.")
 
     return Bool(True)
 
-def _decode_false(reader: StringReader) -> Bool:
+func _decode_false(reader: StringReader) -> Bool:
     if reader.read(4) != "alse":
         raise TomlError("Corrupt false.")
 
     return Bool(False)
 
-def _decode_table(root: Table, reader: StringReader) -> Table:
+func _decode_table(root: Table, reader: StringReader) -> Table:
     name = ""
     table = Table()
 
@@ -216,7 +216,7 @@ def _decode_table(root: Table, reader: StringReader) -> Table:
 
     return table
 
-def _decode_inline_table(reader: StringReader) -> Table:
+func _decode_inline_table(reader: StringReader) -> Table:
     table = Table()
 
     while True:
@@ -234,7 +234,7 @@ def _decode_inline_table(reader: StringReader) -> Table:
 
     return table
 
-def _decode_array(reader: StringReader) -> Array:
+func _decode_array(reader: StringReader) -> Array:
     array = Array()
 
     while True:
@@ -254,7 +254,7 @@ def _decode_array(reader: StringReader) -> Array:
 
     return array
 
-def _decode_value(reader: StringReader) -> Value:
+func _decode_value(reader: StringReader) -> Value:
     while True:
         ch = reader.get()
 
@@ -274,7 +274,7 @@ def _decode_value(reader: StringReader) -> Value:
             else:
                 raise TomlError(f"Bad value start '{ch}'.")
 
-def _decode_key_value(table: Table, reader: StringReader):
+func _decode_key_value(table: Table, reader: StringReader):
     key = ""
     value: Value = None
 
@@ -292,7 +292,7 @@ def _decode_key_value(table: Table, reader: StringReader):
 
     table.items[key] = _decode_value(reader)
 
-def _decode_comment(reader: StringReader):
+func _decode_comment(reader: StringReader):
     while True:
         ch = reader.get()
 
@@ -301,7 +301,7 @@ def _decode_comment(reader: StringReader):
         elif ch == '\n':
             break
 
-def decode(data: string) -> Table:
+func decode(data: string) -> Table:
     """Decode given TOML string.
 
     """
@@ -328,11 +328,11 @@ def decode(data: string) -> Table:
     return root
 
 @test
-def test_empty_document():
+func test_empty_document():
     assert decode("") is not None
 
 @test
-def test_comment():
+func test_comment():
     encoded = ("# This is a full-line comment\n"
                "key = \"value\"  # This is a comment at the end of a line\n"
                "another = \"# This is not a comment\"\n")
@@ -341,7 +341,7 @@ def test_comment():
     assert decoded.get("another").get_string() == "# This is not a comment"
 
 # @test
-# def test_dotted_keys():
+# func test_dotted_keys():
 #     encoded = ("name = \"Orange\"\n"
 #                "physical.color = \"orange\"\n"
 #                "physical.shape = \"round\"\n"
@@ -354,7 +354,7 @@ def test_comment():
 #     assert decoded.get("site").get("google.com").get_bool()
 
 @test
-def test_array():
+func test_array():
     encoded = (
         "integers = [ 1, 2, 3 ]\n"
         "colors = [ \"red\", \"yellow\", \"green\" ]\n"
@@ -379,7 +379,7 @@ def test_array():
     assert decoded.get("nested_mixed_array").at(1).at(2).get_string() == "c"
 
 @test
-def test_multi_line_array():
+func test_multi_line_array():
     encoded = ("integers2 = [\n"
                "  1, 2, 3\n"
                "]\n"
@@ -395,7 +395,7 @@ def test_multi_line_array():
     assert decoded.get("integers3").at(1).get_integer() == 2
 
 @test
-def test_table():
+func test_table():
     encoded = ("[table-1]\n"
                "key1 = \"some string\"\n"
                "key2 = 123\n"
@@ -412,7 +412,7 @@ def test_table():
     assert table_2.get("key2").get_integer() == 456
 
 # @test
-# def test_table_naming():
+# func test_table_naming():
 #     encoded = ("[dog.\"tater.man\"]\n"
 #                "type.name = \"pug\"\n")
 #     decoded = decode(encoded)
@@ -424,7 +424,7 @@ def test_table():
 #             .get_string() == "pug")
 
 @test
-def test_root_table():
+func test_root_table():
     encoded = ("# Top-level table begins.\n"
                "name = \"Fido\"\n"
                "breed = \"pug\"\n"
@@ -439,7 +439,7 @@ def test_root_table():
     assert owner.get("name").get_string() == "Regina Dogman"
 
 @test
-def test_inline_table():
+func test_inline_table():
     encoded = ("name = { first = \"Tom\", last = \"Preston-Werner\" }\n"
                "point = { x = 1, y = 2 }\n")
     # "animal = { type.name = \"pug\" }\n")
