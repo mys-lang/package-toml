@@ -3,8 +3,7 @@ from string import StringReader
 class TomlError(Error):
     message: string
 
-@trait
-class Value:
+trait Value:
     """A value in a TOML document.
 
     """
