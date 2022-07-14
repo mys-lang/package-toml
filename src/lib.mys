@@ -326,12 +326,10 @@ func decode(data: string) -> Table:
 
     return root
 
-@test
-func test_empty_document():
+test empty_document():
     assert decode("") is not None
 
-@test
-func test_comment():
+test comment():
     encoded = ("# This is a full-line comment\n"
                "key = \"value\"  # This is a comment at the end of a line\n"
                "another = \"# This is not a comment\"\n")
@@ -352,8 +350,7 @@ func test_comment():
 #     assert physical.get("shape").get_string() == "round"
 #     assert decoded.get("site").get("google.com").get_bool()
 
-@test
-func test_array():
+test array():
     encoded = (
         "integers = [ 1, 2, 3 ]\n"
         "colors = [ \"red\", \"yellow\", \"green\" ]\n"
@@ -377,8 +374,7 @@ func test_array():
     assert decoded.get("nested_mixed_array").at(1).at(1).get_string() == "b"
     assert decoded.get("nested_mixed_array").at(1).at(2).get_string() == "c"
 
-@test
-func test_multi_line_array():
+test multi_line_array():
     encoded = ("integers2 = [\n"
                "  1, 2, 3\n"
                "]\n"
@@ -393,8 +389,7 @@ func test_multi_line_array():
     assert decoded.get("integers3").at(0).get_integer() == 1
     assert decoded.get("integers3").at(1).get_integer() == 2
 
-@test
-func test_table():
+test table():
     encoded = ("[table-1]\n"
                "key1 = \"some string\"\n"
                "key2 = 123\n"
@@ -422,8 +417,7 @@ func test_table():
 #             .get("name")
 #             .get_string() == "pug")
 
-@test
-func test_root_table():
+test root_table():
     encoded = ("# Top-level table begins.\n"
                "name = \"Fido\"\n"
                "breed = \"pug\"\n"
@@ -437,8 +431,7 @@ func test_root_table():
     owner = decoded.get("owner")
     assert owner.get("name").get_string() == "Regina Dogman"
 
-@test
-func test_inline_table():
+test inline_table():
     encoded = ("name = { first = \"Tom\", last = \"Preston-Werner\" }\n"
                "point = { x = 1, y = 2 }\n")
     # "animal = { type.name = \"pug\" }\n")
