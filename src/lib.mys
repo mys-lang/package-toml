@@ -8,58 +8,58 @@ trait Value:
 
     """
 
-    func get_table(self) -> {string: Value}:
-        """Get a table. Raises an error for non-table values.
+    func table(self) -> {string: Value}:
+        """As a table. Raises an error for non-table values.
 
         """
 
         raise NotImplementedError()
 
     func get(self, key: string) -> Value:
-        """Get an item from a table. Raises an error for non-table values and
+        """As an item from a table. Raises an error for non-table values and
         if the key is missing.
 
         """
 
         raise NotImplementedError()
 
-    func get_array(self) -> [Value]:
-        """Get an array. Raises an error for non-array values.
+    func array(self) -> [Value]:
+        """As an array. Raises an error for non-array values.
 
         """
 
         raise NotImplementedError()
 
     func at(self, index: i64) -> Value:
-        """Get an item in an array. Raises an error for non-array values.
+        """As an item in an array. Raises an error for non-array values.
 
         """
 
         raise NotImplementedError()
 
-    func get_string(self) -> string:
-        """Get a string. Raises an error for non-string values.
+    func string(self) -> string:
+        """As a string. Raises an error for non-string values.
 
         """
 
         raise NotImplementedError()
 
-    func get_integer(self) -> i64:
-        """Get an integer. Raises an error for non-integer values.
+    func integer(self) -> i64:
+        """As an integer. Raises an error for non-integer values.
 
         """
 
         raise NotImplementedError()
 
-    func get_float(self) -> f64:
-        """Get a float. Raises an error for non-float values.
+    func float(self) -> f64:
+        """As a float. Raises an error for non-float values.
 
         """
 
         raise NotImplementedError()
 
-    func get_bool(self) -> bool:
-        """Get a boolean. Raises an error for non-bool values.
+    func bool(self) -> bool:
+        """As a boolean. Raises an error for non-bool values.
 
         """
 
@@ -75,7 +75,7 @@ class Table(Value):
     func __init__(self):
         self.items = {}
 
-    func get_table(self) -> {string: Value}:
+    func table(self) -> {string: Value}:
         return self.items
 
     func get(self, key: string) -> Value:
@@ -91,7 +91,7 @@ class Array(Value):
     func __init__(self):
         self.items = []
 
-    func get_array(self) -> [Value]:
+    func array(self) -> [Value]:
         return self.items
 
     func at(self, index: i64) -> Value:
@@ -104,7 +104,7 @@ class String(Value):
 
     value: string
 
-    func get_string(self) -> string:
+    func string(self) -> string:
         return self.value
 
 class Integer(Value):
@@ -114,13 +114,13 @@ class Integer(Value):
 
     value: i64
 
-    func get_integer(self) -> i64:
+    func integer(self) -> i64:
         return self.value
 
 # class Float(Value):
 #     value: f64
 #
-#     func get_float(self) -> f64:
+#     func float(self) -> f64:
 #         return self.value
 
 class Bool(Value):
@@ -130,7 +130,7 @@ class Bool(Value):
 
     value: bool
 
-    func get_bool(self) -> bool:
+    func bool(self) -> bool:
         return self.value
 
 func _decode_string(reader: StringReader) -> String:
@@ -157,10 +157,10 @@ func _decode_string(reader: StringReader) -> String:
             elif ch == 't':
                 value += '\t'
             elif ch == 'u':
-                value += char(i32(reader.get()) << 24
-                              | i32(reader.get()) << 16
-                              | i32(reader.get()) << 8
-                              | i32(reader.get()) << 0)
+                value += char(i64(reader.get()) << 24
+                              | i64(reader.get()) << 16
+                              | i64(reader.get()) << 8
+                              | i64(reader.get()) << 0)
             else:
                 raise TomlError(f"Unexpected character '{ch}'.")
         elif ch == '':
@@ -334,8 +334,8 @@ test comment():
                "key = \"value\"  # This is a comment at the end of a line\n"
                "another = \"# This is not a comment\"\n")
     decoded = decode(encoded)
-    assert decoded.get("key").get_string() == "value"
-    assert decoded.get("another").get_string() == "# This is not a comment"
+    assert decoded.get("key").string() == "value"
+    assert decoded.get("another").string() == "# This is not a comment"
 
 # @test
 # func test_dotted_keys():
@@ -344,11 +344,11 @@ test comment():
 #                "physical.shape = \"round\"\n"
 #                "site.\"google.com\" = true\n")
 #     decoded = decode(encoded)
-#     assert decoded.get("name").get_string() == "Orange"
+#     assert decoded.get("name").string() == "Orange"
 #     physical = decoded.get("physical")
-#     assert physical.get("color").get_string() == "orange"
-#     assert physical.get("shape").get_string() == "round"
-#     assert decoded.get("site").get("google.com").get_bool()
+#     assert physical.get("color").string() == "orange"
+#     assert physical.get("shape").string() == "round"
+#     assert decoded.get("site").get("google.com").bool()
 
 test array():
     encoded = (
@@ -357,22 +357,22 @@ test array():
         "nested_arrays_of_ints = [ [ 1, 2 ], [3, 4, 5] ]\n"
         "nested_mixed_array = [ [ 1, 2 ], [\"a\", \"b\", \"c\"] ]\n")
     decoded = decode(encoded)
-    assert decoded.get("integers").at(0).get_integer() == 1
-    assert decoded.get("integers").at(1).get_integer() == 2
-    assert decoded.get("integers").at(2).get_integer() == 3
-    assert decoded.get("colors").at(0).get_string() == "red"
-    assert decoded.get("colors").at(1).get_string() == "yellow"
-    assert decoded.get("colors").at(2).get_string() == "green"
-    assert decoded.get("nested_arrays_of_ints").at(0).at(0).get_integer() == 1
-    assert decoded.get("nested_arrays_of_ints").at(0).at(1).get_integer() == 2
-    assert decoded.get("nested_arrays_of_ints").at(1).at(0).get_integer() == 3
-    assert decoded.get("nested_arrays_of_ints").at(1).at(1).get_integer() == 4
-    assert decoded.get("nested_arrays_of_ints").at(1).at(2).get_integer() == 5
-    assert decoded.get("nested_mixed_array").at(0).at(0).get_integer() == 1
-    assert decoded.get("nested_mixed_array").at(0).at(1).get_integer() == 2
-    assert decoded.get("nested_mixed_array").at(1).at(0).get_string() == "a"
-    assert decoded.get("nested_mixed_array").at(1).at(1).get_string() == "b"
-    assert decoded.get("nested_mixed_array").at(1).at(2).get_string() == "c"
+    assert decoded.get("integers").at(0).integer() == 1
+    assert decoded.get("integers").at(1).integer() == 2
+    assert decoded.get("integers").at(2).integer() == 3
+    assert decoded.get("colors").at(0).string() == "red"
+    assert decoded.get("colors").at(1).string() == "yellow"
+    assert decoded.get("colors").at(2).string() == "green"
+    assert decoded.get("nested_arrays_of_ints").at(0).at(0).integer() == 1
+    assert decoded.get("nested_arrays_of_ints").at(0).at(1).integer() == 2
+    assert decoded.get("nested_arrays_of_ints").at(1).at(0).integer() == 3
+    assert decoded.get("nested_arrays_of_ints").at(1).at(1).integer() == 4
+    assert decoded.get("nested_arrays_of_ints").at(1).at(2).integer() == 5
+    assert decoded.get("nested_mixed_array").at(0).at(0).integer() == 1
+    assert decoded.get("nested_mixed_array").at(0).at(1).integer() == 2
+    assert decoded.get("nested_mixed_array").at(1).at(0).string() == "a"
+    assert decoded.get("nested_mixed_array").at(1).at(1).string() == "b"
+    assert decoded.get("nested_mixed_array").at(1).at(2).string() == "c"
 
 test multi_line_array():
     encoded = ("integers2 = [\n"
@@ -384,10 +384,10 @@ test multi_line_array():
                "  2, # this is ok\n"
                "]\n")
     decoded = decode(encoded)
-    assert decoded.get("integers2").at(0).get_integer() == 1
-    assert decoded.get("integers2").at(1).get_integer() == 2
-    assert decoded.get("integers3").at(0).get_integer() == 1
-    assert decoded.get("integers3").at(1).get_integer() == 2
+    assert decoded.get("integers2").at(0).integer() == 1
+    assert decoded.get("integers2").at(1).integer() == 2
+    assert decoded.get("integers3").at(0).integer() == 1
+    assert decoded.get("integers3").at(1).integer() == 2
 
 test table():
     encoded = ("[table-1]\n"
@@ -399,11 +399,11 @@ test table():
                "key2 = 456\n")
     decoded = decode(encoded)
     table_1 = decoded.get("table-1")
-    assert table_1.get("key1").get_string() == "some string"
-    assert table_1.get("key2").get_integer() == 123
+    assert table_1.get("key1").string() == "some string"
+    assert table_1.get("key2").integer() == 123
     table_2 = decoded.get("table-2")
-    assert table_2.get("key1").get_string() == "another string"
-    assert table_2.get("key2").get_integer() == 456
+    assert table_2.get("key1").string() == "another string"
+    assert table_2.get("key2").integer() == 456
 
 # @test
 # func test_table_naming():
@@ -415,7 +415,7 @@ test table():
 #             .get("tater.man")
 #             .get("type")
 #             .get("name")
-#             .get_string() == "pug")
+#             .string() == "pug")
 
 test root_table():
     encoded = ("# Top-level table begins.\n"
@@ -426,18 +426,18 @@ test root_table():
                "[owner]\n"
                "name = \"Regina Dogman\"\n")
     decoded = decode(encoded)
-    assert decoded.get("name").get_string() == "Fido"
-    assert decoded.get("breed").get_string() == "pug"
+    assert decoded.get("name").string() == "Fido"
+    assert decoded.get("breed").string() == "pug"
     owner = decoded.get("owner")
-    assert owner.get("name").get_string() == "Regina Dogman"
+    assert owner.get("name").string() == "Regina Dogman"
 
 test inline_table():
     encoded = ("name = { first = \"Tom\", last = \"Preston-Werner\" }\n"
                "point = { x = 1, y = 2 }\n")
     # "animal = { type.name = \"pug\" }\n")
     decoded = decode(encoded)
-    assert decoded.get("name").get("first").get_string() == "Tom"
-    assert decoded.get("name").get("last").get_string() == "Preston-Werner"
-    assert decoded.get("point").get("x").get_integer() == 1
-    assert decoded.get("point").get("y").get_integer() == 2
-    # assert decoded.get("animal").get("type").get("name").get_string() == "pug"
+    assert decoded.get("name").get("first").string() == "Tom"
+    assert decoded.get("name").get("last").string() == "Preston-Werner"
+    assert decoded.get("point").get("x").integer() == 1
+    assert decoded.get("point").get("y").integer() == 2
+    # assert decoded.get("animal").get("type").get("name").string() == "pug"
