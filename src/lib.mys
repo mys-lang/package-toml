@@ -275,7 +275,7 @@ func _decode_value(reader: StringReader) -> Value:
 
 func _decode_key_value(table: Table, reader: StringReader):
     key = ""
-    value: Value = None
+    value: Value? = None
 
     while True:
         ch = reader.get()
@@ -327,7 +327,7 @@ func decode(data: string) -> Table:
     return root
 
 test empty_document():
-    assert decode("") is not None
+    decode("")
 
 test comment():
     encoded = ("# This is a full-line comment\n"
